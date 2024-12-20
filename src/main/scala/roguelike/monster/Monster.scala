@@ -2,10 +2,11 @@ package roguelike.monster
 
 import roguelike.dungeon.Dungeon
 import roguelike.player.Player
+import scalafx.beans.property.IntegerProperty
 
 case class Monster(
-                    var x: Int,
-                    var y: Int,
+                    private val _x: IntegerProperty,
+                    private val _y: IntegerProperty,
                     var health: Int = 50,
                     val maxHealth: Int = 50,
                     var attackPower: Int = 5,
@@ -13,6 +14,16 @@ case class Monster(
                     var color: scalafx.scene.paint.Color = scalafx.scene.paint.Color.Red,
                     var moveCooldown: Int = 0
                   ) {
+  // Expose x and y properties
+  def x: Int = _x.value
+  def x_=(newX: Int): Unit = _x.value = newX
+
+  def y: Int = _y.value
+  def y_=(newY: Int): Unit = _y.value = newY
+
+  // Expose x and y properties
+  def xProperty: IntegerProperty = _x
+  def yProperty: IntegerProperty = _y
 
   val maxMoveCooldown = 10 
 
@@ -26,7 +37,7 @@ case class Monster(
     player.takeDamage(attackPower)
   }
 
-
+  // Enhanced AI - move towards the player if within a certain range, otherwise move randomly
   def update(player: Player, dungeon: Dungeon): Unit = {
     println(s"Monster at (${x}, ${y}) updating. moveCooldown: ${moveCooldown}")
     if (moveCooldown > 0) {
@@ -39,6 +50,7 @@ case class Monster(
     println(s"  Distance to player: ${distanceToPlayer}")
 
     if (distanceToPlayer <= 5) {
+      // Move towards the player
       val dx = (player.x - x).sign
       val dy = (player.y - y).sign
 
@@ -56,6 +68,7 @@ case class Monster(
         println(s"  Move blocked by obstacle.")
       }
     } else {
+      // Random movement
       val randomMove = scala.util.Random.nextInt(4)
       val (dx, dy) = randomMove match {
         case 0 => (1, 0)
@@ -103,7 +116,7 @@ object Monster {
 
         // Check if the position is valid for a monster
         if (dungeon.grid(y)(x) == '.' && !monsters.exists(m => m.x == x && m.y == y)) {
-          monsters += Monster(x, y) // Use default values for health, attackPower, etc.
+          monsters += Monster(IntegerProperty(x), IntegerProperty(y))
           placed = true
         }
       }
