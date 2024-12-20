@@ -32,7 +32,7 @@ object MyApp extends JFXApp3:
   var items: List[Item] = List()
   var isPlayerTurn: Boolean = true
   val inventoryUI: ObjectProperty[Option[VBox]] = ObjectProperty(None)
-  val damageLabels: ListBuffer[Label] = ListBuffer() 
+  val damageLabels: ListBuffer[Label] = ListBuffer()
 
   override def start(): Unit = {
     val dungeonWidth = 50
