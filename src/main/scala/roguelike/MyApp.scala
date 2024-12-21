@@ -33,6 +33,7 @@ object MyApp extends JFXApp3:
   var isPlayerTurn: Boolean = true
   val inventoryUI: ObjectProperty[Option[VBox]] = ObjectProperty(None)
   val damageLabels: ListBuffer[Label] = ListBuffer()
+  var monsterVBoxes: Map[Monster, VBox] = Map.empty
 
   override def start(): Unit = {
     val dungeonWidth = 50
@@ -41,25 +42,22 @@ object MyApp extends JFXApp3:
 
     dungeon = DungeonGenerator.generate(dungeonWidth, dungeonHeight, numRooms)
 
-    // Print the rooms (for testing)
     dungeon.rooms.foreach(room => println(s"Room at (${room.x}, ${room.y}), size: ${room.width}x${room.height}"))
 
-    // Print the dungeon grid to the console (for testing)
     printDungeon(dungeon)
 
     // Create the player and place them in the first room
     player = Player(dungeon.rooms.head.center._1, dungeon.rooms.head.center._2)
 
     // Create monsters
-    monsters = Monster.placeMonsters(dungeon, numMonsters = 5)
+    monsters = Monster.placeMonsters(dungeon, numMonsters = 5) // Place 5 monsters
 
     // Create items and place them in the dungeon
-    items = placeItemsInDungeon(dungeon, numItems = 3)
+    items = placeItemsInDungeon(dungeon, 3) // Example: Place 3 health potions
 
-    // Test label (for debugging)
     val testLabel = new Label("TEST") {
       style = "-fx-text-fill: yellow; -fx-font-weight: bold; -fx-font-size: 20;"
-      layoutX = 200
+      layoutX = 200 // Example position
       layoutY = 200
     }
 
@@ -69,7 +67,7 @@ object MyApp extends JFXApp3:
         fill = Color.Black
         content = Seq(testLabel) ++ createDungeonContent() ++ createMonsterRectangles() ++ createItemRectangles() ++ Seq(createPlayerRectangle())
 
-        // Handle keyboard input for player movement
+
         onKeyPressed = (event: KeyEvent) => {
           if (isPlayerTurn) {
             val originalX = player.x
@@ -83,12 +81,11 @@ object MyApp extends JFXApp3:
               case KeyCode.I => toggleInventoryUI()
               case _             =>
             }
-            // Check for item pickup only if the player's position has changed
             if (player.x != originalX || player.y != originalY) {
               handleItemPickup()
             }
             updateSceneContent()
-            isPlayerTurn = false
+            isPlayerTurn = false // End player's turn
             println(s"isPlayerTurn set to: ${isPlayerTurn}")
           }
         }
@@ -100,11 +97,9 @@ object MyApp extends JFXApp3:
     val timer: AnimationTimer = AnimationTimer { currentNanoTime =>
       if (lastUpdateTime > 0) {
         val deltaTime = (currentNanoTime - lastUpdateTime) / 1e9
-
-        // Update game state only if it's not the player's turn
         if (!isPlayerTurn) {
           println("Monsters' turn")
-          monsters.foreach(_.update(player, dungeon))
+          monsters.foreach(_.update(player, dungeon, monsterVBoxes))
           handleCombat()
           updateSceneContent()
           isPlayerTurn = true
@@ -137,28 +132,17 @@ object MyApp extends JFXApp3:
         height = 10
         fill = monster.color
       }
-      val healthBar = new Rectangle {
-        width = 10 * (monster.health.toDouble / monster.maxHealth.toDouble)
-        height = 3
-        fill = Color.Red
-      }
 
-      // Use a VBox to group the monster rectangle and its health bar
+      monster.healthBar.x = monster.x * 10
+      monster.healthBar.y = monster.y * 10 - 5
+
       val vbox = new VBox {
-        children = Seq(healthBar, monsterRect)
+        translateX = monster.x * 10
+        translateY = monster.y * 10 - 5
+        children = Seq(monster.healthBar, monsterRect)
       }
 
-      // Bind the VBox's position to the monster's position
-      monster.xProperty.onChange { (_, _, newValue) =>
-        vbox.translateX = newValue.doubleValue * 10
-      }
-      monster.yProperty.onChange { (_, _, newValue) =>
-        vbox.translateY = newValue.doubleValue * 10 - 5
-      }
-
-      // Set the initial position
-      vbox.translateX = monster.x * 10
-      vbox.translateY = monster.y * 10 - 5
+      monsterVBoxes += (monster -> vbox)
 
       vbox
     }
@@ -182,18 +166,18 @@ object MyApp extends JFXApp3:
 
   // Helper function to print the dungeon to the console (for testing)
   def printDungeon(dungeon: Dungeon): Unit =
+    // Fill the grid with walls initially
     for i <- 0 until dungeon.height do
       for j <- 0 until dungeon.width do
         dungeon.grid(i)(j) = '#'
 
-    // Carve out the rooms
     dungeon.rooms.foreach { room =>
       for i <- room.y until room.y + room.height do
         for j <- room.x until room.x + room.width do
           dungeon.grid(i)(j) = '.'
     }
 
-    // Print the grid
+
     for row <- dungeon.grid do
       println(row.mkString)
 
@@ -231,20 +215,21 @@ object MyApp extends JFXApp3:
     // Check for adjacent monsters
     val adjacentMonsters = monsters.filter(m => isAdjacent(player.x, player.y, m.x, m.y))
 
-    // Player attacks the first adjacent monster
     if (adjacentMonsters.nonEmpty) {
       val targetMonster = adjacentMonsters.head
       val damage = player.attackPower
+
       targetMonster.takeDamage(damage)
       displayDamageNumber(damage, targetMonster.x, targetMonster.y)
 
-      // Check if the monster is defeated
+      targetMonster.updateHealthBar()
+
       if (targetMonster.health <= 0) {
         monsters = monsters.filterNot(_ == targetMonster)
+        monsterVBoxes -= targetMonster
       }
     }
 
-    // Check if any monsters are adjacent to the player and attack
     monsters.filter(m => isAdjacent(player.x, player.y, m.x, m.y)).foreach { monster =>
       val damage = monster.attackPower
       player.takeDamage(damage)
@@ -266,6 +251,7 @@ object MyApp extends JFXApp3:
       player.pickupItem(item)
       items = items.filterNot(_ == item)
       updateSceneContent()
+      println(s"Player picked up a ${item.name}, quantity: ${item.quantity}")
     }
   }
 
@@ -291,9 +277,15 @@ object MyApp extends JFXApp3:
         val x = room.x + random.nextInt(room.width)
         val y = room.y + random.nextInt(room.height)
 
-        // Check if the position is valid for an item
         if (dungeon.grid(y)(x) == '.' && !items.exists(i => i.x == x && i.y == y)) {
-          items += HealthPotion(x, y)
+          val item: Item = random.nextInt(100) match {
+            case n if n < 50 => HealthPotion(x, y)
+            case n if n < 80 => StrengthPotion(x, y)
+            case n if n < 95 => ScrollOfTeleportation(x, y)
+            case _ => HealthPotion(x, y)
+          }
+          item.quantity = 1
+          items += item
           placed = true
         }
       }
@@ -315,23 +307,38 @@ object MyApp extends JFXApp3:
       padding = Insets(10)
       spacing = 10
       style = "-fx-background-color: rgba(0, 0, 0, 0.8);"
-      children = (new Label {
+      children = new Label {
         text = "Inventory"
         font = Font("Arial", 16)
         style = "-fx-text-fill: white;"
-      } :: player.inventory.map { item =>
+      } +: player.inventory.groupBy(item => (item.name, item.rarity)).map { case ((name, rarity), items) =>
+        val item = items.head
         new HBox {
           spacing = 10
           children = Seq(
             new Label {
-              text = s"${item.name} (${item.rarity}) - ${item.description}"
+              text = s"$name ($rarity) - ${item.description}, Quantity: ${item.quantity}"
               font = Font("Arial", 14)
               style = "-fx-text-fill: white;"
             },
             new Button {
-              text = "Use"
+              text = "Use 1"
               onAction = _ => {
-                item.use(player)
+                item.use(player, dungeon)
+                item.quantity -= 1
+                if (item.quantity == 0) {
+                  player.inventory = player.inventory.filterNot(_ == item)
+                }
+                toggleInventoryUI()
+                isPlayerTurn = false
+              }
+            },
+            new Button {
+              text = "Use All"
+              onAction = _ => {
+                for (_ <- 0 until item.quantity) {
+                  item.use(player, dungeon)
+                }
                 player.inventory = player.inventory.filterNot(_ == item)
                 toggleInventoryUI()
                 isPlayerTurn = false
@@ -339,7 +346,7 @@ object MyApp extends JFXApp3:
             }
           )
         }
-      }) :+ new Button {
+      }.toSeq :+ new Button {
         text = "Close"
         onAction = _ => toggleInventoryUI()
       }
@@ -352,18 +359,17 @@ object MyApp extends JFXApp3:
     val damageLabel = new Label(s"-$damage") {
       style = "-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 16;"
       layoutX = x * 10
-      layoutY = y * 10 - 20
+      layoutY = y * 10 - 20 // Position above the entity
     }
 
-    // Add to scene
     stage.scene().content += damageLabel
-
-    // Fade out animation
+    println(s"Damage label added to scene at: (${damageLabel.layoutX.value}, ${damageLabel.layoutY.value})")
+    
     val fadeOut = new FadeTransition(Duration(1000), damageLabel) {
       fromValue = 1.0
       toValue = 0.0
       onFinished = () => {
-        stage.scene().content -= damageLabel
+        stage.scene().content -= damageLabel // Remove after animation
         damageLabels -= damageLabel
         println("Damage label removed from scene")
       }
