@@ -130,7 +130,7 @@ object Monster {
         val y = room.y + random.nextInt(room.height)
 
         if (dungeon.grid(y)(x) == '.' && !monsters.exists(m => m.x == x && m.y == y)) {
-          monsters += Monster(x, y) 
+          monsters += Monster(x, y)
           placed = true
         }
       }
