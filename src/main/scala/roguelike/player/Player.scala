@@ -1,7 +1,7 @@
 package roguelike.player
 
 import roguelike.dungeon.Dungeon
-import roguelike.items.Item
+import roguelike.items.{Item, HealthPotion, StrengthPotion, ScrollOfTeleportation, Common, Uncommon, Rare, Legendary}
 import roguelike.monster.Monster
 import scalafx.scene.paint.Color
 
@@ -9,6 +9,7 @@ case class Player(
                    var x: Int,
                    var y: Int,
                    var health: Int = 100,
+                   val maxHealth: Int = 100,
                    var attackPower: Int = 10,
                    var inventory: List[Item] = List(),
                    var color: Color = Color.Blue,
@@ -32,8 +33,15 @@ case class Player(
   }
 
   def pickupItem(item: Item): Unit = {
-    inventory = item :: inventory
-    println(s"Player picked up a ${item.name}!")
+    val existingItemIndex = inventory.indexWhere(i => i.name == item.name && i.rarity == item.rarity)
+
+    if (existingItemIndex != -1) {
+      inventory(existingItemIndex).quantity += 1
+    } else {
+      inventory = item :: inventory
+    }
+
+    println(s"Player picked up a ${item.name}! Total: ${inventory.count(_.name == item.name)}")
   }
 
   def attack(monster: Monster): Unit = {
