@@ -2,34 +2,33 @@ package roguelike.monster
 
 import roguelike.dungeon.Dungeon
 import roguelike.player.Player
-import scalafx.beans.property.IntegerProperty
+import scalafx.scene.layout.VBox
+import scalafx.scene.paint.Color
+import scalafx.scene.shape.Rectangle
 
 case class Monster(
-                    private val _x: IntegerProperty,
-                    private val _y: IntegerProperty,
+                    var x: Int,
+                    var y: Int,
                     var health: Int = 50,
                     val maxHealth: Int = 50,
                     var attackPower: Int = 5,
                     var symbol: Char = 'M',
-                    var color: scalafx.scene.paint.Color = scalafx.scene.paint.Color.Red,
-                    var moveCooldown: Int = 0
+                    var color: scalafx.scene.paint.Color = Color.Red,
+                    var moveCooldown: Int = 0,
+                    val healthBar: Rectangle = new Rectangle {
+                      width = 10
+                      height = 3
+                      fill = Color.Red
+                      visible = false
+                    }
                   ) {
-  // Expose x and y properties
-  def x: Int = _x.value
-  def x_=(newX: Int): Unit = _x.value = newX
 
-  def y: Int = _y.value
-  def y_=(newY: Int): Unit = _y.value = newY
-
-  // Expose x and y properties
-  def xProperty: IntegerProperty = _x
-  def yProperty: IntegerProperty = _y
-
-  val maxMoveCooldown = 10 
+  val maxMoveCooldown = 10
 
   def takeDamage(damage: Int): Unit = {
     health -= damage
     if (health < 0) health = 0
+    updateHealthBar()
   }
 
   def attack(player: Player): Unit = {
@@ -38,7 +37,7 @@ case class Monster(
   }
 
   // Enhanced AI - move towards the player if within a certain range, otherwise move randomly
-  def update(player: Player, dungeon: Dungeon): Unit = {
+  def update(player: Player, dungeon: Dungeon, monsterVBoxes: Map[Monster, VBox]): Unit = {
     println(s"Monster at (${x}, ${y}) updating. moveCooldown: ${moveCooldown}")
     if (moveCooldown > 0) {
       moveCooldown -= 1
@@ -50,7 +49,6 @@ case class Monster(
     println(s"  Distance to player: ${distanceToPlayer}")
 
     if (distanceToPlayer <= 5) {
-      // Move towards the player
       val dx = (player.x - x).sign
       val dy = (player.y - y).sign
 
@@ -64,11 +62,14 @@ case class Monster(
         y = newY
         println(s"  Moved to (${x}, ${y})")
         moveCooldown = maxMoveCooldown
+        monsterVBoxes.get(this).foreach { vbox =>
+          vbox.translateX = x * 10
+          vbox.translateY = y * 10 - 5
+        }
       } else {
         println(s"  Move blocked by obstacle.")
       }
     } else {
-      // Random movement
       val randomMove = scala.util.Random.nextInt(4)
       val (dx, dy) = randomMove match {
         case 0 => (1, 0)
@@ -88,6 +89,11 @@ case class Monster(
         y = newY
         println(s"  Moved to (${x}, ${y})")
         moveCooldown = maxMoveCooldown
+
+        monsterVBoxes.get(this).foreach { vbox =>
+          vbox.translateX = x * 10
+          vbox.translateY = y * 10 - 5
+        }
       } else {
         println(s"  Random move blocked.")
       }
@@ -99,6 +105,15 @@ case class Monster(
     val isValid = newX >= 0 && newX < dungeon.width && newY >= 0 && newY < dungeon.height && dungeon.grid(newY)(newX) != '#'
     println(s"    isValidMove(${newX}, ${newY}) = ${isValid}")
     isValid
+  }
+  // Method to update the health bar's visibility and width
+  def updateHealthBar(): Unit = {
+    if (health < maxHealth) {
+      healthBar.visible = true
+      healthBar.width = 10 * (health.toDouble / maxHealth.toDouble)
+    } else {
+      healthBar.visible = false
+    }
   }
 }
 
@@ -114,9 +129,8 @@ object Monster {
         val x = room.x + random.nextInt(room.width)
         val y = room.y + random.nextInt(room.height)
 
-        // Check if the position is valid for a monster
         if (dungeon.grid(y)(x) == '.' && !monsters.exists(m => m.x == x && m.y == y)) {
-          monsters += Monster(IntegerProperty(x), IntegerProperty(y))
+          monsters += Monster(x, y) 
           placed = true
         }
       }
