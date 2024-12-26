@@ -20,7 +20,7 @@ abstract class Entity(
   def move(dx: Int, dy: Int, level: Level): Unit = {
     val newX = x + dx
     val newY = y + dy
-    
+
     if (
       newX >= 0 && newX < level.width && newY >= 0 && newY < level.height && !level
         .isTileBlocking(newX, newY)
