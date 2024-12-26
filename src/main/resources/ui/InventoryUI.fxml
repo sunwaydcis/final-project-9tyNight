@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ScrollPane?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="roguelike.ui.InventoryController"
+      prefHeight="400.0" prefWidth="300.0" spacing="10" alignment="TOP_CENTER">
+
+    <padding>
+        <Insets top="10" right="10" bottom="10" left="10"/>
+    </padding>
+
+    <Label text="Inventory" style="-fx-font-weight: bold; -fx-font-size: 16;"/>
+
+    <ScrollPane fx:id="inventoryScrollPane" hbarPolicy="NEVER" fitToWidth="true">
+        <GridPane fx:id="inventoryGrid" hgap="5" vgap="5">
+        </GridPane>
+    </ScrollPane>
+
+    <Label fx:id="itemDescriptionLabel" wrapText="true" />
+
+</VBox>
