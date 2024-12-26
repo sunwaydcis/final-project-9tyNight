@@ -9,5 +9,5 @@ trait Item {
   var x: Int = 0
   var y: Int = 0
 
-  def use(target: Entity): Unit 
+  def use(target: Entity): Unit
 }
