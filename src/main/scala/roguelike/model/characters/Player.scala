@@ -47,7 +47,7 @@ class Player(
     println(s"Attempting to move to: ($newX, $newY)")
     println(s"Is within bounds: ${level.isWithinBounds(newX, newY)}")
     println(s"Is tile blocking: ${level.isTileBlocking(newX, newY)}")
-    
+
     if (level.isWithinBounds(newX, newY) && !level.isTileBlocking(newX, newY)) {
       x = newX
       y = newY
