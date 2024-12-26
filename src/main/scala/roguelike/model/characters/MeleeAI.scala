@@ -6,7 +6,7 @@ class MeleeAI extends AI {
   override def performAction(self: Enemy, game: Game): Unit = {
     val player = game.player
     val level = game.currentLevel
-    
+
     val dx = player.x - self.x
     val dy = player.y - self.y
 
