@@ -1,4 +1,3 @@
-// src/main/scala/roguelike/Main.scala
 package roguelike
 
 import scalafx.application.JFXApp3
