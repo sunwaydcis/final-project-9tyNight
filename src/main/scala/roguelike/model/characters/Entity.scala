@@ -4,7 +4,10 @@ import roguelike.model.Stats
 import roguelike.model.level.Level
 import scalafx.scene.paint.Color
 import roguelike.model.Game
+import roguelike.model.items.Inventory
+import scalafx.scene.image.Image
 import roguelike.model.FloatingText
+import roguelike.model.items.Item
 
 abstract class Entity(
                        _x: Int,
@@ -16,11 +19,17 @@ abstract class Entity(
                      ) {
   var x: Int = _x
   var y: Int = _y
+  var game: Game = _
+
+  def setGame(game: Game): Unit = {
+    this.game = game
+  }
 
   def move(dx: Int, dy: Int, level: Level): Unit = {
     val newX = x + dx
     val newY = y + dy
 
+    // Check if the new position is within the level bounds
     if (
       newX >= 0 && newX < level.width && newY >= 0 && newY < level.height && !level
         .isTileBlocking(newX, newY)
@@ -32,20 +41,27 @@ abstract class Entity(
 
   def attack(target: Entity, game: Game): Unit = {
     val damage = math.max(0, this.stats.attack - target.stats.defense)
-    println(s"${this.name} attacks ${target.name} for ${damage} damage!")
     target.takeDamage(damage, game)
   }
 
   def takeDamage(damage: Int, game: Game): Unit = {
     this.stats.health -= damage
-    println(s"${this.name} takes ${damage} damage. Health: ${this.stats.health}")
-    game.addFloatingText(FloatingText(s"-$damage", this.x, this.y, Color.Red, 60)) // Display damage text for 60 frames
+    game.addFloatingText(FloatingText(s"-$damage", this.x, this.y, Color.Red, 60))
     if (isDead()) {
-      println(s"${this.name} has died!")
     }
   }
 
   def isDead(): Boolean = {
     stats.health <= 0
+  }
+
+  def equip(item: Item): Option[Item] = None
+
+  def unequip(slot: String): Unit = {}
+}
+
+object Entity {
+  def isAdjacent(entity1: Entity, entity2: Entity): Boolean = {
+    math.abs(entity1.x - entity2.x) <= 1 && math.abs(entity1.y - entity2.y) <= 1
   }
 }
