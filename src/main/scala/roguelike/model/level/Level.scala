@@ -10,14 +10,19 @@ class Level(
              val height: Int,
              val tiles: Array[Array[Tile]],
              var entities: List[Entity],
-             var items: ListBuffer[Item] = ListBuffer.empty[Item]
+             var items: ListBuffer[Item] = ListBuffer.empty[Item],
+             val levelNumber: Int = 1
            ) {
+
   def isTileBlocking(x: Int, y: Int): Boolean = {
-    val isBlocking = if (isWithinBounds(x, y)) {
-      tiles(x)(y).isBlocking || entities.exists(e => e.x == x && e.y == y && !e.isInstanceOf[Player])
-    } else {
-      true 
-    }
+    val isBlocking =
+      if (isWithinBounds(x, y)) {
+        tiles(x)(y).isBlocking || entities.exists(e =>
+          e.x == x && e.y == y && !e.isInstanceOf[Player]
+        )
+      } else {
+        true
+      }
     isBlocking
   }
 
