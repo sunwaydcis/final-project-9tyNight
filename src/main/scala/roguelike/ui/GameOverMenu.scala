@@ -9,18 +9,21 @@ import roguelike.model.Difficulty
 import roguelike.model.Game
 
 class GameOverMenu(stage: JFXApp3.PrimaryStage) extends Scene {
+  // "Play Again" button
   private val playAgainButton = new Button("Play Again") {
     onAction = _ => {
-      val game = new Game() 
+      val game = new Game(stage) 
       game.loadLevelForDifficulty(Difficulty.Easy)
-      stage.scene = new GameScene(stage, game) // Create a new GameScene
+      stage.scene = new GameScene(stage, game)
     }
   }
-  
+
+  // "Home" button
   private val homeButton = new Button("Home") {
     onAction = _ => stage.scene = new MainMenu(stage)
   }
-  
+
+  // Layout
   root = new VBox(10) {
     padding = Insets(25)
     alignment = Pos.Center
